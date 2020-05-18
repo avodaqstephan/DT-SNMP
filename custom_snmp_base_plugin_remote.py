@@ -3,11 +3,8 @@ import socket
 from queue import Queue
 from threading import Thread
 
-from dtsnmp.host_resource_mib import HostResourceMIB
-from dtsnmp.if_mib import IFMIB
 from dtsnmp.snmpv2_mib import SNMPv2MIB
-from dtsnmp.cisco_process_mib import CiscoProcessMIB
-from dtsnmp.f5_bigip_system_mib import F5BigIPSystemMIB
+from dtsnmp.avodaq_mib import AvodaqProcessMIB
 
 import ruxit.api.selectors
 from ruxit.api.base_plugin import RemoteBasePlugin
@@ -56,29 +53,9 @@ class CustomSnmpBasePluginRemote(RemoteBasePlugin):
         thread_list = []
         mib_list = []
 
-        # VENDOR/DEVICE SPECIFIC POLLING
-        DEVICE_OBJECT_ID = property_dict['sysObjectID']
-        F5_OBJECT_ID = '1.3.6.1.4.1.3375'
-        CISCO_OBJECT_ID = '1.3.6.1.4.1.9'
+        avodaq_mib = AvodaqProcessMIB(device, authentication)
+        mib_list.append(avodaq_mib)
 
-        # HOST METRICS
-        if DEVICE_OBJECT_ID.startswith(CISCO_OBJECT_ID):
-            # Use CISCO PROCESS MIB for Cisco devices
-            cisco_mib = CiscoProcessMIB(device, authentication)
-            mib_list.append(cisco_mib)
-        elif DEVICE_OBJECT_ID.startswith(F5_OBJECT_ID):
-            # USE F5 BIGIP SYSTEM  MIB FOR F5 devices
-            f5_mib = F5BigIPSystemMIB(device, authentication)
-            mib_list.append(f5_mib)
-        else: 
-            # HOST RESOURCE MIB - Default fallback
-            hr_mib = HostResourceMIB(device, authentication)
-            mib_list.append(hr_mib)
-
-        # NETWORK METRICS
-        # IF MIB
-        if_mib = IFMIB(device, authentication)
-        mib_list.append(if_mib)
 
         for mib in mib_list:
             # Lambda function - so that the thread can write poll_metrics() into the queue
